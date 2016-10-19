@@ -44,9 +44,9 @@ const modelHaru = {
   ],
   "layout":
   {
-    "center_x":0,
-    "y":1.2,
-    "width":2.9
+    "center_x": 0,
+    "y": 1.2,
+    "width": 2.9
   },
   "hit_areas":
   [
@@ -92,10 +92,10 @@ const sprite = new PIXI.Sprite.fromImage('./green.jpg');
 stage.addChild(sprite);
 // const live2dSprite2 = new Live2DSprite(modelEpsilon, renderer.view);
 // stage.addChild(live2dSprite2);
-const live2dSprite = new Live2DSprite(modelHaru, renderer.view);
+const live2dSprite = new Live2DSprite(modelHaru, { debugLog: false });
 stage.addChild(live2dSprite);
 const sprite2 = new PIXI.Sprite.fromImage('./pixiv4.jpg');
-sprite2.y = 300;
+sprite2.y = 550;
 // live2dSprite.interactive = true;
 // live2dSprite.buttonMode = true;
 // live2dSprite.on('click', () => console.log('click'))

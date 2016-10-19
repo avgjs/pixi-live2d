@@ -7,12 +7,13 @@
 import { L2DBaseModel, L2DEyeBlink } from './Live2DFramework';
 import MatrixStack from './MatrixStack';
 import ModelSettingJson from './ModelSettingJson';
-import LAppDefine from './LAppDefine';
 
-export default function LAppModel()
+export default function LAppModel(options)
 {
     //L2DBaseModel.apply(this, arguments);
     L2DBaseModel.prototype.constructor.call(this);
+
+    this.options = options;
 
     this.modelHomeDir = "";
     this.modelSetting = null;
@@ -70,13 +71,13 @@ LAppModel.prototype.load = function(gl, modelDefine, callback)
 
 
 
-                        if (thisRef.eyeBlink == null)
+                        if (!thisRef.eyeBlink)
                         {
                             thisRef.eyeBlink = new L2DEyeBlink();
                         }
 
 
-                        if (thisRef.modelSetting.getPhysicsFile() != null)
+                        if (thisRef.modelSetting.getPhysicsFile())
                         {
                             thisRef.loadPhysics(thisRef.modelHomeDir +
                                                 thisRef.modelSetting.getPhysicsFile());
@@ -88,7 +89,7 @@ LAppModel.prototype.load = function(gl, modelDefine, callback)
 
 
 
-                        if (thisRef.modelSetting.getPoseFile() != null)
+                        if (thisRef.modelSetting.getPoseFile())
                         {
                             thisRef.loadPose(
                                 thisRef.modelHomeDir +
@@ -105,7 +106,7 @@ LAppModel.prototype.load = function(gl, modelDefine, callback)
 
 
 
-                        if (thisRef.modelSetting.getLayout() != null)
+                        if (thisRef.modelSetting.getLayout())
                         {
                             var layout = thisRef.modelSetting.getLayout();
                             if (layout["width"] != null)
@@ -155,7 +156,7 @@ LAppModel.prototype.load = function(gl, modelDefine, callback)
                         // thisRef.live2DModel.setGL(gl);
 
 
-                        thisRef.preloadMotionGroup(LAppDefine.MOTION_GROUP_IDLE);
+                        thisRef.preloadMotionGroup(thisRef.options.defaultMotionGroup);
                         thisRef.mainMotionManager.stopAllMotions();
 
                         thisRef.setUpdating(false);
@@ -202,9 +203,9 @@ LAppModel.prototype.update = function()
 {
     // console.log("--> LAppModel.update()");
 
-    if(this.live2DModel == null)
+    if(!this.live2DModel)
     {
-        if (LAppDefine.DEBUG_LOG) console.error("Failed to update.");
+        if (this.options.debugLog) console.error("Failed to update.");
 
         return;
     }
@@ -217,7 +218,7 @@ LAppModel.prototype.update = function()
     if (this.mainMotionManager.isFinished())
     {
 
-        this.startRandomMotion(LAppDefine.MOTION_GROUP_IDLE, LAppDefine.PRIORITY_IDLE);
+        this.startRandomMotion(this.options.defaultMotionGroup, this.options.priorityDefault);
     }
 
     //-----------------------------------------------------------------
@@ -230,7 +231,7 @@ LAppModel.prototype.update = function()
     var update = this.mainMotionManager.updateParam(this.live2DModel);
     if (!update) {
 
-        if(this.eyeBlink != null) {
+        if(this.eyeBlink) {
             this.eyeBlink.updateParam(this.live2DModel);
         }
     }
@@ -241,8 +242,8 @@ LAppModel.prototype.update = function()
     //-----------------------------------------------------------------
 
 
-    if (this.expressionManager != null &&
-        this.expressions != null &&
+    if (this.expressionManager &&
+        this.expressions &&
         !this.expressionManager.isFinished())
     {
         this.expressionManager.updateParam(this.live2DModel);
@@ -265,32 +266,32 @@ LAppModel.prototype.update = function()
 
 
 
-    this.live2DModel.addToParamFloat("PARAM_ANGLE_X",
-                                     Number((15 * Math.sin(t / 6.5345))), 0.5);
-    this.live2DModel.addToParamFloat("PARAM_ANGLE_Y",
-                                     Number((8 * Math.sin(t / 3.5345))), 0.5);
-    this.live2DModel.addToParamFloat("PARAM_ANGLE_Z",
-                                     Number((10 * Math.sin(t / 5.5345))), 0.5);
-    this.live2DModel.addToParamFloat("PARAM_BODY_ANGLE_X",
-                                     Number((4 * Math.sin(t / 15.5345))), 0.5);
-    this.live2DModel.setParamFloat("PARAM_BREATH",
-                                   Number((0.5 + 0.5 * Math.sin(t / 3.2345))), 1);
+    // this.live2DModel.addToParamFloat("PARAM_ANGLE_X",
+    //                                  Number((15 * Math.sin(t / 6.5345))), 0.5);
+    // this.live2DModel.addToParamFloat("PARAM_ANGLE_Y",
+    //                                  Number((8 * Math.sin(t / 3.5345))), 0.5);
+    // this.live2DModel.addToParamFloat("PARAM_ANGLE_Z",
+    //                                  Number((10 * Math.sin(t / 5.5345))), 0.5);
+    // this.live2DModel.addToParamFloat("PARAM_BODY_ANGLE_X",
+    //                                  Number((4 * Math.sin(t / 15.5345))), 0.5);
+    // this.live2DModel.setParamFloat("PARAM_BREATH",
+    //                                Number((0.5 + 0.5 * Math.sin(t / 3.2345))), 1);
 
 
-    if (this.physics != null)
+    if (this.physics)
     {
         this.physics.updateParam(this.live2DModel);
     }
 
 
-    if (this.lipSync == null)
+    if (this.lipSync)
     {
         this.live2DModel.setParamFloat("PARAM_MOUTH_OPEN_Y",
                                        this.lipSyncValue);
     }
 
 
-    if( this.pose != null ) {
+    if( this.pose ) {
         this.pose.updateParam(this.live2DModel);
     }
 
@@ -331,18 +332,18 @@ LAppModel.prototype.startMotion = function(name, no, priority)
 
     if (motionName == null || motionName == "")
     {
-        if (LAppDefine.DEBUG_LOG)
+        if (this.options.debugLog)
             console.warn("Failed to motion.");
         return;
     }
 
-    if (priority == LAppDefine.PRIORITY_FORCE)
+    if (priority == this.options.priorityForce)
     {
         this.mainMotionManager.setReservePriority(priority);
     }
     else if (!this.mainMotionManager.reserveMotion(priority))
     {
-        if (LAppDefine.DEBUG_LOG)
+        if (this.options.debugLog)
             console.log("Motion is running.")
         return;
     }
@@ -378,7 +379,7 @@ LAppModel.prototype.setFadeInFadeOut = function(name, no, priority, motion)
     motion.setFadeOut(this.modelSetting.getMotionFadeOut(name, no));
 
 
-    if (LAppDefine.DEBUG_LOG)
+    if (this.options.debugLog)
             console.log("Start motion : " + motionName);
 
     if (this.modelSetting.getMotionSound(name, no) == null)
@@ -393,7 +394,7 @@ LAppModel.prototype.setFadeInFadeOut = function(name, no, priority, motion)
         var snd = document.createElement("audio");
         snd.src = this.modelHomeDir + soundName;
 
-        if (LAppDefine.DEBUG_LOG)
+        if (this.options.debugLog)
             console.log("Start sound : " + soundName);
 
         snd.play();
@@ -407,7 +408,7 @@ LAppModel.prototype.setExpression = function(name)
 {
     var motion = this.expressions[name];
 
-    if (LAppDefine.DEBUG_LOG)
+    if (this.options.debugLog)
         console.log("Expression : " + name);
 
     this.expressionManager.startMotion(motion, false);

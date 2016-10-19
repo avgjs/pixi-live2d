@@ -20,31 +20,33 @@ import LAppModel from './lib/LAppModel';
 import { Live2DFramework, L2DTargetPoint, L2DViewMatrix, L2DMatrix44 } from './lib/Live2DFramework';
 import MatrixStack from './lib/MatrixStack';
 
-function getWebGLContext(canvas) {
-  var NAMES = [ "webgl", "experimental-webgl", "webkit-3d", "moz-webgl"];
-  var param = {
-    alpha : true,
-    premultipliedAlpha : true
-  };
-  for (var i = 0; i < NAMES.length; i++) {
-    try {
-      var ctx = canvas.getContext(NAMES[i], param);
-      if (ctx) {
-        return ctx;
-      }
-    } catch (e) {}
-  }
-  return null;
-};
-
+/**
+ * @class
+ * @memberof PIXI
+ * @param modelDefine {object} Content of {name}.model.js file
+ * @param [options] {object} The optional parameters
+ * @param [options.priorityForce=3] {number}
+ * @param [options.priorityDefault=1] {number}
+ * @param [options.debugLog=false] {boolean}
+ * @param [options.debugMouseLog=false] {boolean}
+ * @param [options.defaultMotionGroup="idle"] {string}
+ */
 export default class Live2DSprite extends PIXI.Container {
-  constructor(modelDefine, canvas) {
+  constructor(modelDefine, options) {
     super();
 
     this.platform = window.navigator.platform.toLowerCase();
 
+    const fullOptions = Object.assign({
+      priorityForce: 3,
+      priorityDefault: 1,
+      debugLog: false,
+      debugMouseLog: false,
+      defaultMotionGroup: "idle"
+    }, options);
+
     Live2D.init();
-    this.model = new LAppModel();
+    this.model = new LAppModel(fullOptions);
 
     this.isDrawStart = false;
 
@@ -64,14 +66,17 @@ export default class Live2DSprite extends PIXI.Container {
 
     this.isModelShown = false;
 
-    this.canvas = canvas
+    // this.canvas = canvas;
 
     this.modelReady = false;
-    this.init(modelDefine);
-
+    this.modelDefine = modelDefine;
+    // this.init(modelDefine);
   }
 
-  init(modelDefine) {
+  /**
+   * @private
+   */
+  init() {
 
     var width = this.canvas.width;
     var height = this.canvas.height;
@@ -111,21 +116,24 @@ export default class Live2DSprite extends PIXI.Container {
 
 
 
-    this.gl = getWebGLContext(this.canvas);
-    if (!this.gl) {
-        console.error("Failed to create WebGL context.");
-        return;
-    }
+    // this.gl = getWebGLContext(this.canvas);
+    // if (!this.gl) {
+    //     console.error("Failed to create WebGL context.");
+    //     return;
+    // }
 
     Live2D.setGL(this.gl);
 
 
     this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
-    this.model.load(this.gl, modelDefine, () => {
+    this.model.load(this.gl, this.modelDefine, () => {
       this.modelReady = true;
     });
   }
 
+  /**
+   * @private
+   */
   draw() {
     MatrixStack.reset();
     MatrixStack.loadIdentity();
@@ -148,6 +156,12 @@ export default class Live2DSprite extends PIXI.Container {
   }
 
   _renderWebGL(renderer) {
+    if (!this.gl) {
+      this.gl = renderer.gl;
+      this.canvas = renderer.view;
+      this.modelDefine && this.init(this.modelDefine);
+    }
+
     if (!this.modelReady) {
       return;
     }
@@ -214,5 +228,36 @@ export default class Live2DSprite extends PIXI.Container {
     this.model.release();
     super.destroy(...args);
   }
+
+  /* Live2D methods */
+
+  /**
+   * specify `PARAM_MOUTH_OPEN_Y` of Live2D model.
+   * @param value {Number} between 0~1, set to `null` will disable it.
+   */
+  setLipSync(value) {
+    if (value === null) {
+      this.model.setLipSync(!!value);
+    } else {
+      this.model.setLipSyncValue(value);
+    }
+  }
+
+  /* Some raw methods of Live2D */
+
+  getParamFloat(key) {
+    return this.model.getLive2DModel().getParamFloat(key);
+  }
+  setParamFloat(key, value, weight=1) {
+    this.model.getLive2DModel().setParamFloat(key, value, weight);
+  }
+  addToParamFloat(key, value, weight=1) {
+    this.model.getLive2DModel().addToParamFloat(key, value, weight);
+  }
+  multParamFloat(key, value, weight=1) {
+    this.model.getLive2DModel().multParamFloat(key, value, weight);
+  }
+
+
 
 }
