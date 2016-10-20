@@ -15,6 +15,10 @@ export default function LAppModel(options)
 
     this.options = options;
 
+    this.randomMotion = this.options.randomMotion;
+    this.randomMotionGroup = null;
+    this.randomMotionPriority = null;
+
     this.modelHomeDir = "";
     this.modelSetting = null;
     this.tmpMatrix = [];
@@ -215,10 +219,9 @@ LAppModel.prototype.update = function()
     var t = timeSec * 2 * Math.PI;
 
 
-    if (this.mainMotionManager.isFinished())
+    if (this.mainMotionManager.isFinished() && this.randomMotion)
     {
-
-        this.startRandomMotion(this.options.defaultMotionGroup, this.options.priorityDefault);
+        this.startRandomMotion(this.randomMotionGroup || this.options.defaultMotionGroup, this.randomMotionPriority || this.options.priorityDefault);
     }
 
     //-----------------------------------------------------------------
@@ -231,7 +234,7 @@ LAppModel.prototype.update = function()
     var update = this.mainMotionManager.updateParam(this.live2DModel);
     if (!update) {
 
-        if(this.eyeBlink) {
+        if(this.eyeBlink && this.options.eyeBlink) {
             this.eyeBlink.updateParam(this.live2DModel);
         }
     }
@@ -283,7 +286,6 @@ LAppModel.prototype.update = function()
         this.physics.updateParam(this.live2DModel);
     }
 
-
     if (this.lipSync)
     {
         this.live2DModel.setParamFloat("PARAM_MOUTH_OPEN_Y",
@@ -320,6 +322,22 @@ LAppModel.prototype.startRandomMotion = function(name, priority)
     var max = this.modelSetting.getMotionNum(name);
     var no = parseInt(Math.random() * max);
     this.startMotion(name, no, priority);
+    this.randomMotion = true;
+    this.randomMotionGroup = name;
+    this.randomMotionPriority = priority;
+}
+LAppModel.prototype.startRandomMotionOnce = function(name, priority)
+{
+    var max = this.modelSetting.getMotionNum(name);
+    var no = parseInt(Math.random() * max);
+    this.startMotion(name, no, priority);
+}
+
+LAppModel.prototype.stopRandomMotion = function()
+{
+    this.randomMotion = false;
+    this.randomMotionGroup = null;
+    this.randomMotionPriority = null;
 }
 
 
@@ -391,17 +409,60 @@ LAppModel.prototype.setFadeInFadeOut = function(name, no, priority, motion)
         var soundName = this.modelSetting.getMotionSound(name, no);
         // var player = new Sound(this.modelHomeDir + soundName);
 
-        var snd = document.createElement("audio");
-        snd.src = this.modelHomeDir + soundName;
-
         if (this.options.debugLog)
             console.log("Start sound : " + soundName);
 
-        snd.play();
+        this.playSound(soundName, this.modelHomeDir);
+
         this.mainMotionManager.startMotionPrio(motion, priority);
     }
 }
 
+LAppModel.prototype.playSound = function(filename, host)
+{
+    if (this.options.audioPlayer) {
+        this.options.audioPlayer(filename, host);
+    } else {
+        var audio = document.createElement("audio");
+        audio.src = host + filename;
+
+        var AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+            var context = new AudioContext();
+            var source = context.createMediaElementSource(audio);
+            var analyser = context.createAnalyser();
+
+            analyser.fftSize = 32;
+            var bufferLength = analyser.frequencyBinCount;
+            let cache = [];
+            let lastTime = Date.now();
+            const intervalId = setInterval(() => {
+                var dataArray = new Uint8Array(bufferLength);
+                analyser.getByteFrequencyData(dataArray);
+                const value = (dataArray[9] + dataArray[10] + dataArray[11]) / 3;
+                if (Date.now() - lastTime  < 33) {
+                    cache.push(value);
+                } else {
+                    const lipValue = cache.length ?
+                    (cache.reduce((previous, current) => current += previous) / cache.length / 100)
+                    : this.lipSyncValue;
+                    this.lipSync = true;
+                    this.lipSyncValue = lipValue;
+                    lastTime = Date.now();
+                    cache = [];
+                }
+            }, 0);
+            audio.addEventListener('ended', () => {
+                clearInterval(intervalId);
+                this.lipSyncValue = 0;
+            });
+            //连接：source → Gain → destination
+            source.connect(analyser);
+            analyser.connect(context.destination);
+        }
+        audio.play();
+    }
+}
 
 
 LAppModel.prototype.setExpression = function(name)

@@ -44,7 +44,7 @@ const modelHaru = {
   ],
   "layout":
   {
-    "center_x": 0,
+    "center_x": 0.8,
     "y": 1.2,
     "width": 2.9
   },
@@ -88,18 +88,27 @@ const modelHaru = {
 
 
 // sprite.x = 800;
-const sprite = new PIXI.Sprite.fromImage('./green.jpg');
+const sprite = new PIXI.Sprite.fromImage('./7_room2_a.jpg');
 stage.addChild(sprite);
 // const live2dSprite2 = new Live2DSprite(modelEpsilon, renderer.view);
 // stage.addChild(live2dSprite2);
-const live2dSprite = new Live2DSprite(modelHaru, { debugLog: false });
+const live2dSprite = new Live2DSprite(modelHaru, {
+  debugLog: false,
+  randomMotion: false,
+  eyeBlink: false,
+  // audioPlayer: (...args) => console.log(...args)
+});
 stage.addChild(live2dSprite);
+live2dSprite.startRandomMotion('idle');
+// live2dSprite.startMotion('pinch_out', 0);
+live2dSprite.playSound('111111111111.mp3', 'sound/');
+// live2dSprite.setLipSync(0);
 const sprite2 = new PIXI.Sprite.fromImage('./pixiv4.jpg');
 sprite2.y = 550;
 // live2dSprite.interactive = true;
 // live2dSprite.buttonMode = true;
 // live2dSprite.on('click', () => console.log('click'))
-stage.addChild(sprite2);
+// stage.addChild(sprite2);
 
 // let t = null;
 //

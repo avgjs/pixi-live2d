@@ -25,11 +25,16 @@ import MatrixStack from './lib/MatrixStack';
  * @memberof PIXI
  * @param modelDefine {object} Content of {name}.model.js file
  * @param [options] {object} The optional parameters
- * @param [options.priorityForce=3] {number}
- * @param [options.priorityDefault=1] {number}
+ * @param [options.eyeBlink=true] {boolean}
  * @param [options.debugLog=false] {boolean}
  * @param [options.debugMouseLog=false] {boolean}
+ * @param [options.randomMotion=true] {boolean}
  * @param [options.defaultMotionGroup="idle"] {string}
+ * @param [options.priorityDefault=1] {number}
+ * @param [options.priorityForce=3] {number}
+ * @param [options.audioPlayer=3] {function} Custom audio player,
+ *                                           pass (filename, rootPath) as parameters
+ *
  */
 export default class Live2DSprite extends PIXI.Container {
   constructor(modelDefine, options) {
@@ -42,7 +47,10 @@ export default class Live2DSprite extends PIXI.Container {
       priorityDefault: 1,
       debugLog: false,
       debugMouseLog: false,
-      defaultMotionGroup: "idle"
+      eyeBlink: true,
+      randomMotion: true,
+      defaultMotionGroup: "idle",
+      audioPlayer: null
     }, options);
 
     Live2D.init();
@@ -69,6 +77,7 @@ export default class Live2DSprite extends PIXI.Container {
     // this.canvas = canvas;
 
     this.modelReady = false;
+    this.onModelReady = [];
     this.modelDefine = modelDefine;
     // this.init(modelDefine);
   }
@@ -166,6 +175,11 @@ export default class Live2DSprite extends PIXI.Container {
       return;
     }
 
+    while (this.onModelReady.length) {
+      const func = this.onModelReady.shift();
+      func();
+    }
+
     renderer.flush();
 
     const gl = renderer.gl;
@@ -237,10 +251,41 @@ export default class Live2DSprite extends PIXI.Container {
    */
   setLipSync(value) {
     if (value === null) {
-      this.model.setLipSync(!!value);
+      this.model.setLipSync(false);
     } else {
+      this.model.setLipSync(true);
       this.model.setLipSyncValue(value);
     }
+  }
+  setRandomExpression() {
+    this.onModelReady.push(() => {
+      this.model.setRandomExpression();
+    });
+  }
+  startRandomMotion(name, priority) {
+    this.onModelReady.push(() => {
+      this.model.startRandomMotion(name, priority);
+    });
+  }
+  startRandomMotionOnce(name, priority) {
+    this.onModelReady.push(() => {
+      this.model.startRandomMotionOnce(name, priority);
+    });
+  }
+  stopRandomMotion() {
+    this.onModelReady.push(() => {
+      this.model.stopRandomMotion();
+    });
+  }
+  startMotion(name, no, priority) {
+    this.onModelReady.push(() => {
+      this.model.startMotion(name, no, priority);
+    });
+  }
+  playSound(filename, host='/') {
+    this.onModelReady.push(() => {
+      this.model.playSound(filename, host);
+    });
   }
 
   /* Some raw methods of Live2D */
