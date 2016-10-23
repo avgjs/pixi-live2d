@@ -1,6 +1,6 @@
 {
   "name": "pixi-live2d",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Display live2D model as a sprite in pixi.js.",
   "main": "dist/index.js",
   "scripts": {
@@ -21,8 +21,7 @@
     "url": "https://github.com/avgjs/pixi-live2d.git"
   },
   "license": "MIT",
-  "dependencies": {
-  },
+  "dependencies": {},
   "devDependencies": {
     "babel-core": "^6.17.0",
     "babel-loader": "^6.2.5",
