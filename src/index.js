@@ -1,4 +1,3 @@
-import PIXI from 'pixi.js';
 import {
   UtSystem,
   UtDebug,
@@ -26,19 +25,21 @@ import MatrixStack from './lib/MatrixStack';
  * @param modelDefine {object} Content of {name}.model.js file
  * @param [options] {object} The optional parameters
  * @param [options.eyeBlink=true] {boolean}
+ * @param [options.lipSyncWithSound=true] {boolean}
  * @param [options.debugLog=false] {boolean}
  * @param [options.debugMouseLog=false] {boolean}
  * @param [options.randomMotion=true] {boolean}
  * @param [options.defaultMotionGroup="idle"] {string}
  * @param [options.priorityDefault=1] {number}
  * @param [options.priorityForce=3] {number}
- * @param [options.audioPlayer=3] {function} Custom audio player,
- *                                           pass (filename, rootPath) as parameters
+ * @param [options.audioPlayer=3] {function} Custom audio player, pass (filename, rootPath) as parameters
  *
  */
-export default class Live2DSprite extends PIXI.Container {
+export default class Live2DSprite extends PIXI.Sprite {
   constructor(modelDefine, options) {
     super();
+
+    this.interactive = true;
 
     this.platform = window.navigator.platform.toLowerCase();
 
@@ -48,6 +49,7 @@ export default class Live2DSprite extends PIXI.Container {
       debugLog: false,
       debugMouseLog: false,
       eyeBlink: true,
+      lipSyncWithSound: true,
       randomMotion: true,
       defaultMotionGroup: "idle",
       audioPlayer: null
@@ -55,8 +57,6 @@ export default class Live2DSprite extends PIXI.Container {
 
     Live2D.init();
     this.model = new LAppModel(fullOptions);
-
-    this.isDrawStart = false;
 
     this.gl = null;
     this.canvas = null;
@@ -66,20 +66,12 @@ export default class Live2DSprite extends PIXI.Container {
     this.projMatrix = null; /*new L2DMatrix44()*/
     this.deviceToScreen = null; /*new L2DMatrix44();*/
 
-    this.drag = false;
-    this.oldLen = 0;
-
-    this.lastMouseX = 0;
-    this.lastMouseY = 0;
-
-    this.isModelShown = false;
-
-    // this.canvas = canvas;
+    this.texture = null;
 
     this.modelReady = false;
     this.onModelReady = [];
     this.modelDefine = modelDefine;
-    // this.init(modelDefine);
+
   }
 
   /**
@@ -87,52 +79,44 @@ export default class Live2DSprite extends PIXI.Container {
    */
   init() {
 
+
     var width = this.canvas.width;
     var height = this.canvas.height;
 
+    this.texture = PIXI.RenderTexture.create(width, height);
+
+    this.canvasWidth = this.canvas.width;
+    this.canvasHeight = this.canvas.height;
+
     this.dragMgr = new L2DTargetPoint();
 
-
     var ratio = height / width;
-    var left = -1;  //VIEW_LOGICAL_LEFT;
-    var right = 1;  //VIEW_LOGICAL_RIGHT;
+    var left = -1;
+    var right = 1;
     var bottom = -ratio;
     var top = ratio;
 
     this.viewMatrix = new L2DViewMatrix();
-
-
-    this.viewMatrix.setScreenRect(left, right, bottom, top);
-
-
     this.viewMatrix.setMaxScreenRect(-2, 2, -2, 2);
-    //VIEW_LOGICAL_MAX_LEFT,
-                                    //  VIEW_LOGICAL_MAX_RIGHT,
-                                    //  VIEW_LOGICAL_MAX_BOTTOM,
-                                    //  VIEW_LOGICAL_MAX_TOP
-
-    this.viewMatrix.setMaxScale(2);
-    this.viewMatrix.setMinScale(0.8);
+    this.viewMatrix.setScreenRect(left, right, bottom, top);
+    // this.viewMatrix.setMaxScale(2);
+    // this.viewMatrix.setMinScale(0.5);
+    // this.viewMatrix.adjustScale(0, 0, 0.7);
 
     this.projMatrix = new L2DMatrix44();
-    // this.projMatrix.multScale(1, (width / height));
-    this.projMatrix.multScale(ratio, 1);
-
+    this.projMatrix.multScale(ratio, 1);  // flip for rtt
 
     this.deviceToScreen = new L2DMatrix44();
-    // this.deviceToScreen.multTranslate( 0, 1);
-    this.deviceToScreen.multScale(0.7, 0.7);
-
-
-
-    // this.gl = getWebGLContext(this.canvas);
-    // if (!this.gl) {
-    //     console.error("Failed to create WebGL context.");
-    //     return;
-    // }
+    this.deviceToScreen.multTranslate( -width / 2.0, -height / 2.0);
+    this.deviceToScreen.multScale(2 / width, -2 / height);
 
     Live2D.setGL(this.gl);
 
+    this.x = width / 2;
+    this.y = height / 2;
+    this.anchor.x = 0.5;
+    this.anchor.y = 0.5;
+    this.scale.y = -1;
 
     this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
     this.model.load(this.gl, this.modelDefine, () => {
@@ -148,14 +132,14 @@ export default class Live2DSprite extends PIXI.Container {
     MatrixStack.loadIdentity();
 
     this.dragMgr.update();
-    // this.live2DMgr.setDrag(this.dragMgr.getX(), this.dragMgr.getY());
+    this.model.setDrag(this.dragMgr.getX(), this.dragMgr.getY());
 
-
-    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    // this.viewMatrix.adjustTranslate(-this.x / this.canvasWidth, -this.y / this.canvasHeight);
+    // this.viewMatrix.adjustScale(this.anchor.x, this.anchor.y, this.scale.x, this.scale.y);
 
     MatrixStack.multMatrix(this.projMatrix.getArray());
     MatrixStack.multMatrix(this.viewMatrix.getArray());
-    MatrixStack.multMatrix(this.deviceToScreen.getArray());
+    // MatrixStack.multMatrix(this.deviceToScreen.getArray());
     MatrixStack.push();
 
     this.model.update();
@@ -180,6 +164,10 @@ export default class Live2DSprite extends PIXI.Container {
       func();
     }
 
+    if (!this.visible) {
+      return
+    }
+
     renderer.flush();
 
     const gl = renderer.gl;
@@ -194,7 +182,7 @@ export default class Live2DSprite extends PIXI.Container {
     gl.activeTexture(gl.TEXTURE1);
     const texture1 = gl.getParameter(gl.TEXTURE_BINDING_2D);
 
-    // const frontFace = gl.getParameter(gl.FRONT_FACE);
+    const frontFace = gl.getParameter(gl.FRONT_FACE);
     const colorWhiteMask = gl.getParameter(gl.COLOR_WRITEMASK);
 
     const vertexAttr0Enabled = gl.getVertexAttrib(0, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
@@ -207,14 +195,22 @@ export default class Live2DSprite extends PIXI.Container {
     const cullFaceEnabled = gl.isEnabled(gl.CULL_FACE);
     const blendEnabled = gl.isEnabled(gl.BLEND);
 
-    const clear = gl.clear;
-    gl.clear = () => {};
+    const _activeTextureLocation = renderer._activeTextureLocation;
+    const _activeRenderTarget = renderer._activeRenderTarget;
+
+    renderer.bindRenderTexture(this.texture);
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.frontFace(gl.CW);
     this.draw();
-    gl.clear = clear;
+    renderer._activeTextureLocation = _activeTextureLocation;
+    gl.activeTexture(gl.TEXTURE0 + _activeTextureLocation);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.useProgram(currentProgram);
+    renderer.bindRenderTarget(_activeRenderTarget);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, arrayBuffer);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elementArrayBuffer);
-    gl.useProgram(currentProgram);
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture0);
@@ -222,18 +218,18 @@ export default class Live2DSprite extends PIXI.Container {
     gl.bindTexture(gl.TEXTURE_2D, texture1);
 
     gl.activeTexture(activeTexture);
-    // gl.frontFace(frontFace);
+    gl.frontFace(frontFace);
     gl.colorMask(...colorWhiteMask);
-
-    vertexAttr0Enabled && gl.enableVertexAttribArray(0);
-    vertexAttr1Enabled && gl.enableVertexAttribArray(1);
-    vertexAttr2Enabled && gl.enableVertexAttribArray(2);
-    vertexAttr3Enabled && gl.enableVertexAttribArray(3);
-    scissorTestEnabled && gl.enable(gl.SCISSOR_TEST);
-    stencilTestEnabled && gl.enable(gl.STENCIL_TEST);
-    depthTestEnabled   && gl.enable(gl.DEPTH_TEST);
-    cullFaceEnabled    && gl.enable(gl.CULL_FACE);
-    blendEnabled       && gl.enable(gl.BLEND);
+    //
+    vertexAttr0Enabled ? gl.enableVertexAttribArray(0) : gl.disableVertexAttribArray(0);
+    vertexAttr1Enabled ? gl.enableVertexAttribArray(1) : gl.disableVertexAttribArray(1);
+    vertexAttr2Enabled ? gl.enableVertexAttribArray(2) : gl.disableVertexAttribArray(2);
+    vertexAttr3Enabled ? gl.enableVertexAttribArray(3) : gl.disableVertexAttribArray(3);
+    scissorTestEnabled ? gl.enable(gl.SCISSOR_TEST) : gl.disable(gl.SCISSOR_TEST);
+    stencilTestEnabled ? gl.enable(gl.STENCIL_TEST) : gl.disable(gl.STENCIL_TEST);
+    depthTestEnabled   ? gl.enable(gl.DEPTH_TEST) : gl.disable(gl.DEPTH_TEST);
+    cullFaceEnabled    ? gl.enable(gl.CULL_FACE) : gl.disable(gl.CULL_FACE);
+    blendEnabled       ? gl.enable(gl.BLEND) : gl.disable(gl.BLEND);
 
     super._renderWebGL(renderer);
   }
@@ -243,7 +239,28 @@ export default class Live2DSprite extends PIXI.Container {
     super.destroy(...args);
   }
 
+  containsPoint(point) {
+    if (this.modelReady) {
+      return this.hitTest(null, point.x, point.y);
+    }
+    return false;
+  }
+
   /* Live2D methods */
+
+
+  /* Transforms */
+
+  adjustScale(cx, cy, scale) {
+    this.onModelReady.push(() => {
+      this.viewMatrix.adjustScale(cx, cy, scale);
+    });
+  }
+  adjustTranslate(shiftX, shiftY) {
+    this.onModelReady.push(() => {
+      this.viewMatrix.adjustTranslate(shiftX, -shiftY);
+    });
+  }
 
   /**
    * specify `PARAM_MOUTH_OPEN_Y` of Live2D model.
@@ -288,8 +305,19 @@ export default class Live2DSprite extends PIXI.Container {
     });
   }
 
-  /* Some raw methods of Live2D */
+  /* Event methods */
+  hitTest(id, x, y) {
+    return this.model.hitTest(id,
+      this.viewMatrix.invertTransformX(this.deviceToScreen.transformX(x)),
+      this.viewMatrix.invertTransformY(this.deviceToScreen.transformY(y)));
+  }
+  setViewPoint(x, y) {
+    this.dragMgr.setPoint(this.viewMatrix.invertTransformX(this.deviceToScreen.transformX(x)),
+    this.viewMatrix.invertTransformY(this.deviceToScreen.transformY(y)));
+  }
 
+
+  /* Some raw methods of Live2D */
   getParamFloat(key) {
     return this.model.getLive2DModel().getParamFloat(key);
   }
@@ -303,6 +331,10 @@ export default class Live2DSprite extends PIXI.Container {
     this.model.getLive2DModel().multParamFloat(key, value, weight);
   }
 
+}
 
-
+if (PIXI) {
+  PIXI.Live2DSprite = Live2DSprite;
+} else {
+  console.error('Error: Cannot find global variable `PIXI`, Live2D plguin will not be installed.');
 }

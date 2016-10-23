@@ -242,7 +242,7 @@ var thisRef = this;
 loadedImage.onload = () => {
 
     // create texture
-    var canvas = document.getElementById("glcanvas");
+   //  var canvas = document.getElementById("glcanvas");
     // var gl = getWebGLContext(canvas, {premultipliedAlpha : true});
     var texture = gl.createTexture();
     if (!texture){ console.error("Failed to generate gl texture name."); return -1; }
@@ -259,6 +259,7 @@ loadedImage.onload = () => {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
     gl.generateMipmap(gl.TEXTURE_2D);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
 
     model.setTexture(no, texture);
 
@@ -373,7 +374,8 @@ L2DBaseModel.prototype.hitTestSimple = function(drawID, testX, testY)
     }
     var tx = this.modelMatrix.invertTransformX(testX);
     var ty = this.modelMatrix.invertTransformY(testY);
-
+   //  console.log(left << 0, right << 0, tx << 0)
+   //  console.log(bottom << 0, top << 0, ty << 0)
     return ( left <= tx && tx <= right && top <= ty && ty <= bottom );
 }
 
@@ -1478,14 +1480,16 @@ L2DViewMatrix.prototype.isMinScale      = function()
 //============================================================
 L2DViewMatrix.prototype.adjustTranslate = function(shiftX/*float*/, shiftY/*float*/)
 {
-    if(this.tr[0] * this.maxLeft + (this.tr[12] + shiftX) > this.screenLeft)
-        shiftX = this.screenLeft - this.tr[0] * this.maxLeft - this.tr[12];
-    if(this.tr[0] * this.maxRight + (this.tr[12] + shiftX) < this.screenRight)
-        shiftX = this.screenRight - this.tr[0] * this.maxRight - this.tr[12];
-    if(this.tr[5] * this.maxTop + (this.tr[13] + shiftY) < this.screenTop)
-        shiftY = this.screenTop - this.tr[5] * this.maxTop - this.tr[13];
-    if(this.tr[5] * this.maxBottom + (this.tr[13] + shiftY) > this.screenBottom)
-        shiftY = this.screenBottom - this.tr[5] * this.maxBottom - this.tr[13];
+   // comment them, for don't know their function
+   //
+   //  if(this.tr[0] * this.maxLeft + (this.tr[12] + shiftX) > this.screenLeft)
+   //      shiftX = this.screenLeft - this.tr[0] * this.maxLeft - this.tr[12];
+   //  if(this.tr[0] * this.maxRight + (this.tr[12] + shiftX) < this.screenRight)
+   //      shiftX = this.screenRight - this.tr[0] * this.maxRight - this.tr[12];
+   //  if(this.tr[5] * this.maxTop + (this.tr[13] + shiftY) < this.screenTop)
+   //      shiftY = this.screenTop - this.tr[5] * this.maxTop - this.tr[13];
+   //  if(this.tr[5] * this.maxBottom + (this.tr[13] + shiftY) > this.screenBottom)
+   //      shiftY = this.screenBottom - this.tr[5] * this.maxBottom - this.tr[13];
 
     var tr1 = [1, 0, 0, 0,
                0, 1, 0, 0,
@@ -1497,21 +1501,31 @@ L2DViewMatrix.prototype.adjustTranslate = function(shiftX/*float*/, shiftY/*floa
 //============================================================
 //    L2DViewMatrix # adjustScale()
 //============================================================
-L2DViewMatrix.prototype.adjustScale     = function(cx/*float*/, cy/*float*/, scale/*float*/)
+L2DViewMatrix.prototype.adjustScale     = function(cx/*float*/, cy/*float*/, scaleX/*float*/, scaleY)
 {
-    var targetScale = scale * this.tr[0];
-    if(targetScale < this.min) {
-        if(this.tr[0] > 0) scale = this.min / this.tr[0];
+    if (!scaleY) {
+        scaleY = scaleX;
     }
-    else if(targetScale > this.max) {
-        if(this.tr[0] > 0) scale = this.max / this.tr[0];
-    }
+   //  var targetScaleX = scaleX * this.tr[0];
+   //  if(targetScaleX < this.min) {
+   //      if(this.tr[0] > 0) scaleX = this.min / this.tr[0];
+   //  }
+   //  else if(targetScaleX > this.max) {
+   //      if(this.tr[0] > 0) scaleX = this.max / this.tr[0];
+   //  }
+   //  var targetScaleY = scaleY * this.tr[0];
+   //  if(targetScaleY < this.min) {
+   //      if(this.tr[0] > 0) scaleY = this.min / this.tr[0];
+   //  }
+   //  else if(targetScaleY > this.max) {
+   //      if(this.tr[0] > 0) scaleY = this.max / this.tr[0];
+   //  }
     var tr1 = [1, 0, 0, 0,
                0, 1, 0, 0,
                0, 0, 1, 0,
                cx, cy, 0, 1];
-    var tr2 = [scale, 0, 0, 0,
-               0, scale, 0, 0,
+    var tr2 = [scaleX, 0, 0, 0,
+               0, scaleY, 0, 0,
                0, 0, 1, 0,
                0, 0, 0, 1 ];
     var tr3 = [1, 0, 0, 0,

@@ -22,6 +22,10 @@ export default function LAppModel(options)
     this.modelHomeDir = "";
     this.modelSetting = null;
     this.tmpMatrix = [];
+
+    this.audioElement = null;
+    this.audioContext = null;
+    this.audioAnalyser = null;
 }
 
 LAppModel.prototype = new L2DBaseModel();
@@ -423,21 +427,27 @@ LAppModel.prototype.playSound = function(filename, host)
     if (this.options.audioPlayer) {
         this.options.audioPlayer(filename, host);
     } else {
-        var audio = document.createElement("audio");
+        const audio = this.audioElement || document.createElement("audio");
+        !this.audioElement && (this.audioElement = audio);
         audio.src = host + filename;
 
-        var AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (AudioContext) {
-            var context = new AudioContext();
-            var source = context.createMediaElementSource(audio);
-            var analyser = context.createAnalyser();
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext && this.options.lipSyncWithSound) {
+            const context = this.audioContext || new AudioContext();
+            if (!this.audioContext) {
+                this.audioContext = context;
+                this.audioElementSource = context.createMediaElementSource(audio);
+            }
+            const source = this.audioElementSource;
+            const analyser = this.audioAnalyser || context.createAnalyser();
+            !this.audioAnalyser && (this.audioAnalyser = analyser);
 
             analyser.fftSize = 32;
             var bufferLength = analyser.frequencyBinCount;
             let cache = [];
             let lastTime = Date.now();
             const intervalId = setInterval(() => {
-                var dataArray = new Uint8Array(bufferLength);
+                const dataArray = new Uint8Array(bufferLength);
                 analyser.getByteFrequencyData(dataArray);
                 const value = (dataArray[9] + dataArray[10] + dataArray[11]) / 3;
                 if (Date.now() - lastTime  < 33) {
@@ -456,7 +466,6 @@ LAppModel.prototype.playSound = function(filename, host)
                 clearInterval(intervalId);
                 this.lipSyncValue = 0;
             });
-            //连接：source → Gain → destination
             source.connect(analyser);
             analyser.connect(context.destination);
         }
@@ -501,10 +510,17 @@ LAppModel.prototype.draw = function(gl)
 LAppModel.prototype.hitTest = function(id, testX, testY)
 {
     var len = this.modelSetting.getHitAreaNum();
+    let hit = false;
     for (var i = 0; i < len; i++)
     {
-        if (id == this.modelSetting.getHitAreaName(i))
-        {
+        // NOTE: id == null means to test all ids.
+        if (id == null) {
+            var drawID = this.modelSetting.getHitAreaID(i);
+            hit = this.hitTestSimple(drawID, testX, testY);
+            if (hit) {
+                return hit;
+            }
+        } else if (id == this.modelSetting.getHitAreaName(i)) {
             var drawID = this.modelSetting.getHitAreaID(i);
 
             return this.hitTestSimple(drawID, testX, testY);
