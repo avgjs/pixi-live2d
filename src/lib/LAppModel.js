@@ -36,7 +36,7 @@ LAppModel.prototype.load = function(gl, modelDefine, callback)
     this.setUpdating(true);
     this.setInitialized(false);
 
-    this.modelHomeDir = '/';
+    this.modelHomeDir = './';
 
     this.modelSetting = new ModelSettingJson(modelDefine);
 
