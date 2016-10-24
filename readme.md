@@ -4,13 +4,13 @@ Display live2D model as a sprite in [pixi.js](https://github.com/pixijs/pixi.js)
 
 --------------------------------------------------------------------------------
 
-[Installation](#Installation) | [Example](#Example) | [API](#API) | [License](#License) | [Donation](#Donation)
+[Installation](#installation) | [Example](#example) | [API](#api) | [License](#license) | [Donation](#donation)
 
 Pixi-live2d is a plugin for pixi.js for displaying live2D model as a sprite in pixi.js.
 
 - Only available in WebGL
 - ECMAScript 2015+
-- [Have a look at example!](https://avgjs.github.io/pixi-live2d/)
+- [Have a look at example!](https://avgjs.github.io/pixi-live2d-example/)
 - [Make me know](mailto:bingfeng.web@gmail.com?subject=Hey,%20I%20made%20a%20cool%20work%20with%20your%20plugin!) if you use my plugin for cool things!
 
 ## Installation
@@ -45,17 +45,17 @@ function animate() {
 animate();
 ```
 
-You can find a more complex one at [`example` folder](./example), or [visit it online](https://avgjs.github.io/pixi-live2d/).
+You can find a more complex one at [`example` folder](./example), or [visit it online](https://avgjs.github.io/pixi-live2d-example/).
 
 ## API
 
-<docs/API.md>
+[docs/API.md](./docs/API.md)
 
 ## License
 
 This plugin is distributed under MIT license, and you should agree with the licenses of Live2D and pixi.js.
 
-For more detail, please read <LICENSE.txt>.
+For more detail, please read [LICENSE.txt](./LICENSE.txt).
 
 ## Donation
 
