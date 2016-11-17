@@ -19,6 +19,22 @@ Pixi-live2d is a plugin for pixi.js for displaying live2D model as a sprite in p
 npm install pixi-live2d
 ```
 
+**Attention**
+
+Because of [the SDK policy](http://sites.cybernoids.jp/cubism-sdk2_e/policy-sdk) of Live2D Inc., SDK file has been removed from the package, so you have to [download](http://sites.cybernoids.jp/cubism-sdk2_e/webgl2-1) and import it by yourself.
+
+for example in HTML file:
+
+```html
+<script src="live2d.min.js"></script>
+```
+
+or just require it
+
+```javascript
+require('live2d.min.js');
+```
+
 ## Example
 
 ```javascript

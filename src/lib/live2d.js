@@ -1,7 +1,7 @@
-const log = console.log;
-console.log = () => {};
-const __ = require('./live2dsdk');
-console.log = log;
+// const log = console.log;
+// console.log = () => {};
+// const __ = require('./live2dsdk');
+// console.log = log;
 
 export {
   UtSystem,
