@@ -157,6 +157,9 @@ export default class Live2DSprite extends PIXI.Sprite {
     }
 
     if (!this.modelReady) {
+      const gl = renderer.gl;
+      // it is unreasonable how the next line works...😂
+      gl.activeTexture(gl.TEXTURE0);
       return;
     }
 
@@ -166,17 +169,28 @@ export default class Live2DSprite extends PIXI.Sprite {
     }
 
     if (!this.visible) {
-      return
+      return;
     }
 
-    renderer.flush();
+    const useVAO = !!(renderer.createVao && renderer.bindVao);
 
+    let _activeVao;
+    if (useVAO) {
+      _activeVao = renderer._activeVao;
+    } else {
+      renderer.flush();
+    }
+    
     const gl = renderer.gl;
 
     const arrayBuffer = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
     const elementArrayBuffer = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
     const currentProgram = gl.getParameter(gl.CURRENT_PROGRAM);
-    const activeTexture = gl.getParameter(gl.ACTIVE_TEXTURE);
+
+    let activeTexture;
+    if (!useVAO) {
+      activeTexture = gl.getParameter(gl.ACTIVE_TEXTURE);
+    }
 
     gl.activeTexture(gl.TEXTURE0);
     const texture0 = gl.getParameter(gl.TEXTURE_BINDING_2D);
@@ -186,10 +200,13 @@ export default class Live2DSprite extends PIXI.Sprite {
     const frontFace = gl.getParameter(gl.FRONT_FACE);
     const colorWhiteMask = gl.getParameter(gl.COLOR_WRITEMASK);
 
-    const vertexAttr0Enabled = gl.getVertexAttrib(0, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
-    const vertexAttr1Enabled = gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
-    const vertexAttr2Enabled = gl.getVertexAttrib(2, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
-    const vertexAttr3Enabled = gl.getVertexAttrib(3, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
+    let vertexAttr0Enabled, vertexAttr1Enabled, vertexAttr2Enabled, vertexAttr3Enabled;
+    if (!useVAO) {
+      vertexAttr0Enabled = gl.getVertexAttrib(0, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
+      vertexAttr1Enabled = gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
+      vertexAttr2Enabled = gl.getVertexAttrib(2, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
+      vertexAttr3Enabled = gl.getVertexAttrib(3, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
+    }
     const scissorTestEnabled = gl.isEnabled(gl.SCISSOR_TEST);
     const stencilTestEnabled = gl.isEnabled(gl.STENCIL_TEST);
     const depthTestEnabled = gl.isEnabled(gl.DEPTH_TEST);
@@ -199,13 +216,20 @@ export default class Live2DSprite extends PIXI.Sprite {
     const _activeTextureLocation = renderer._activeTexture ? renderer._activeTextureLocation : 0;
     const _activeRenderTarget = renderer._activeRenderTarget;
 
+    let vao;
+    if (useVAO) {
+      vao = renderer.createVao();
+      renderer.bindVao(vao);
+    }
     renderer.bindRenderTexture(this.texture);
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.frontFace(gl.CW);
     this.draw();
-    renderer._activeTextureLocation = _activeTextureLocation;
-    gl.activeTexture(gl.TEXTURE0 + _activeTextureLocation);
+    if (!useVAO) {
+      renderer._activeTextureLocation = _activeTextureLocation;
+      gl.activeTexture(gl.TEXTURE0 + _activeTextureLocation);
+    }
     gl.bindTexture(gl.TEXTURE_2D, null);
     gl.useProgram(currentProgram);
     renderer.bindRenderTarget(_activeRenderTarget);
@@ -218,19 +242,29 @@ export default class Live2DSprite extends PIXI.Sprite {
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, texture1);
 
-    gl.activeTexture(activeTexture);
+    if (!useVAO) {
+      gl.activeTexture(activeTexture);
+    }
     gl.frontFace(frontFace);
     gl.colorMask(...colorWhiteMask);
     //
-    vertexAttr0Enabled ? gl.enableVertexAttribArray(0) : gl.disableVertexAttribArray(0);
-    vertexAttr1Enabled ? gl.enableVertexAttribArray(1) : gl.disableVertexAttribArray(1);
-    vertexAttr2Enabled ? gl.enableVertexAttribArray(2) : gl.disableVertexAttribArray(2);
-    vertexAttr3Enabled ? gl.enableVertexAttribArray(3) : gl.disableVertexAttribArray(3);
+    if (!useVAO) {
+      vertexAttr0Enabled ? gl.enableVertexAttribArray(0) : gl.disableVertexAttribArray(0);
+      vertexAttr1Enabled ? gl.enableVertexAttribArray(1) : gl.disableVertexAttribArray(1);
+      vertexAttr2Enabled ? gl.enableVertexAttribArray(2) : gl.disableVertexAttribArray(2);
+      vertexAttr3Enabled ? gl.enableVertexAttribArray(3) : gl.disableVertexAttribArray(3);
+    }
     scissorTestEnabled ? gl.enable(gl.SCISSOR_TEST) : gl.disable(gl.SCISSOR_TEST);
     stencilTestEnabled ? gl.enable(gl.STENCIL_TEST) : gl.disable(gl.STENCIL_TEST);
     depthTestEnabled   ? gl.enable(gl.DEPTH_TEST) : gl.disable(gl.DEPTH_TEST);
     cullFaceEnabled    ? gl.enable(gl.CULL_FACE) : gl.disable(gl.CULL_FACE);
     blendEnabled       ? gl.enable(gl.BLEND) : gl.disable(gl.BLEND);
+
+    if (useVAO) {
+      vao.unbind();
+      vao.destroy();
+      renderer.bindVao(_activeVao);
+    }
 
     super._renderWebGL(renderer);
   }
