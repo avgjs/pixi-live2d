@@ -1,6 +1,6 @@
 {
   "name": "pixi-live2d",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Display live2D model as a sprite in pixi.js.",
   "main": "dist/pixi-live2d.js",
   "scripts": {
