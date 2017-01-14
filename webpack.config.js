@@ -6,7 +6,7 @@ module.exports = {
   entry: "./src/index.js",
   output: {
     path: path.resolve(__dirname, './dist'),
-    filename: "index.js",
+    filename: "pixi-live2d.js",
     libraryTarget: 'umd'
   },
   resolve: {
@@ -16,6 +16,9 @@ module.exports = {
     loaders: [
       { test: /\.js$/, exclude: /node_modules/, loader: "babel-loader"},
     ]
+  },
+  externals: {
+    "pixi.js": "PIXI"
   },
   plugins: [
     new webpack.BannerPlugin(fs.readFileSync('./LICENSE.txt', 'utf8')),

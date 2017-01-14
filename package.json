@@ -2,10 +2,12 @@
   "name": "pixi-live2d",
   "version": "1.2.0",
   "description": "Display live2D model as a sprite in pixi.js.",
-  "main": "dist/index.js",
+  "main": "dist/pixi-live2d.js",
   "scripts": {
     "prepublish": "npm run build",
     "build": "webpack --progress --colors --devtool source-map",
+    "build-min": "webpack --progress --colors --devtool source-map --optimize-minimize",
+    "build-watch": "webpack --progress --colors --devtool source-map --watch",
     "dev": "webpack-dev-server --config ./webpack.config.example.js --progress --colors --devtool source-map --hot --host 0.0.0.0 --compress",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -16,6 +18,10 @@
     "anime"
   ],
   "author": "Icemic Jia <bingfeng.web@gmail.com>",
+  "homepage": "https://github.com/avgjs/pixi-live2d",
+  "bugs": {
+    "url": "https://github.com/avgjs/pixi-live2d/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/avgjs/pixi-live2d.git"
