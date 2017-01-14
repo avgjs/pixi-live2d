@@ -1,12 +1,13 @@
 var fs = require('fs');
 var path = require('path');
 var webpack = require('webpack');
+var min = (process.argv.indexOf('--optimize-minimize') === -1) ? '' : '.min';
 
 module.exports = {
   entry: "./src/index.js",
   output: {
     path: path.resolve(__dirname, './dist'),
-    filename: "pixi-live2d.js",
+    filename: `pixi-live2d${min}.js`,
     libraryTarget: 'umd'
   },
   resolve: {
