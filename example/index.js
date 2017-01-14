@@ -75,7 +75,7 @@ const modelHaru = {
 
 
 const sprite = new PIXI.Sprite.fromImage('./7_room2_a.jpg');
-// stage.addChild(sprite);
+stage.addChild(sprite);
 
 // setTimeout(() => {
 //   const sprite2 = new PIXI.Sprite.fromImage('./pixiv4.jpg');

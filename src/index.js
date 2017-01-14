@@ -196,7 +196,7 @@ export default class Live2DSprite extends PIXI.Sprite {
     const cullFaceEnabled = gl.isEnabled(gl.CULL_FACE);
     const blendEnabled = gl.isEnabled(gl.BLEND);
 
-    const _activeTextureLocation = renderer._activeTextureLocation;
+    const _activeTextureLocation = renderer._activeTexture ? renderer._activeTextureLocation : 0;
     const _activeRenderTarget = renderer._activeRenderTarget;
 
     renderer.bindRenderTexture(this.texture);
