@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "prepublish": "npm run build",
-    "build": "webpack --progress --colors",
-    "dev": "webpack-dev-server --config ./webpack.config.example.js --progress --colors --hot --host 0.0.0.0 --compress",
+    "build": "webpack --progress --colors --devtool source-map",
+    "dev": "webpack-dev-server --config ./webpack.config.example.js --progress --colors --devtool source-map --hot --host 0.0.0.0 --compress",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
