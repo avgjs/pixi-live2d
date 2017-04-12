@@ -19,7 +19,7 @@ module.exports = {
     ]
   },
   externals: {
-    "pixi.js": "PIXI"
+    "pixi.js": "pixi.js"
   },
   plugins: [
     new webpack.BannerPlugin(fs.readFileSync('./LICENSE.txt', 'utf8')),
